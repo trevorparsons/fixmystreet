@@ -273,6 +273,8 @@ sub waste_service_containers {
         next if $container == $CONTAINERS{recycling_blue_bag} && $schedules->{description} !~ /fortnight|every other/; # Blue stripe bag on a weekly collection
 
         if ($container && $quantity) {
+            $self->{c}->stash->{property_time_banded} = 1 if $self->moniker eq 'merton' && $container == $CONTAINERS{recycling_purple_bag};
+
             push @$containers, $container;
 
             $self->{c}->stash->{quantities}->{$container} = $quantity;
