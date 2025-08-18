@@ -226,6 +226,41 @@ FixMyStreet::override_config {
         $mech->content_contains('Subscribe to garden waste collection service', 'Subscribe link present if expired');
     };
 
+    subtest 'check Agile API error handling' => sub {
+        $agile_mock->mock( 'CustomerSearch', sub { {
+            error => '503',
+            error_message => 'Service Unavailable'
+        } } );
+
+        $mech->get_ok('/waste/10001');
+        $mech->content_lacks('Sign up for a garden waste collection', 'Sign-up button not shown when API error');
+        $mech->content_lacks('Subscribe to garden waste collection service', 'Subscribe link not shown when API error');
+        $mech->content_contains("We're currently unable to check your garden waste subscription status", 'API error message shown');
+        $mech->content_contains('Please try again later. If the problem persists, contact us directly', 'API error help text shown');
+
+        default_mocks();
+    };
+
+    subtest 'check expected Agile API responses (404/400) show signup' => sub {
+        # Test that 404 and 400 responses are treated as "no subscription found"
+        # and show the signup button
+        foreach my $error_code ('404', '400') {
+            subtest "Error code $error_code" => sub {
+                $agile_mock->mock( 'CustomerSearch', sub { {
+                    error => $error_code,
+                    error_message => $error_code eq '404' ? 'Not Found' : 'Bad Request'
+                } } );
+
+                $mech->get_ok('/waste/10001');
+                $mech->content_contains('Sign up for a garden waste collection', "Sign-up button shown for $error_code");
+                $mech->content_contains('Subscribe to garden waste collection service', "Subscribe link shown for $error_code");
+                $mech->content_lacks("We're currently unable to check your garden waste subscription status", "API error message not shown for $error_code");
+            };
+        }
+
+        default_mocks();
+    };
+
     subtest 'check new sub bin limits' => sub {
         $mech->get_ok('/waste/10001/garden');
         $mech->submit_form_ok({ form_number => 1 });
