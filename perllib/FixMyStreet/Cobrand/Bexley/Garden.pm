@@ -48,19 +48,12 @@ sub lookup_subscription_for_uprn {
     my ( $customer, $contract );
 
     my $results = $self->agile->CustomerSearch($uprn);
-    # 404 and 400 are expected responses indicating no subscription found
-    # Other errors (like 503) indicate API problems
     if ($results->{error}) {
-        if ($results->{error} eq '404' || $results->{error} eq '400') {
-            # Expected "not found" responses - treat as no subscription
-            return { subscription => undef };
-        } else {
-            # Unexpected error - API problem
-            return {
-                error => $results->{error},
-                error_message => $results->{error_message},
-            };
-        }
+        # Unexpected error - API problem
+        return {
+            error => $results->{error},
+            error_message => $results->{error_message},
+        };
     }
 
     # find the first 'ACTIVATED' Customer with an 'ACTIVE'/'PRECONTRACT' contract
